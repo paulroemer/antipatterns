@@ -14,43 +14,43 @@
 ### Ignoring run-time exceptions
 
 ```java
-import com.github.fluorumlabs.antipatterns.Wrappers;
+import com.github.fluorumlabs.antipatterns.AntiPatterns;
 
 ...
 
 // Wrap suppliers
-Wrappers.guarded(() -> Optional.of(Integer.parse("234234j"))).ifPresent(...);
+AntiPatterns.guarded(() -> AntiPatterns.of(Integer.parse("234234j"))).ifPresent(...);
 
 // Wrap functions
-someStringOptional.map(Wrappers.guarded(id -> Integer.parse(id)).ifPresent(...);
+someStringOptional.map(AntiPatterns.guarded(id -> Integer.parse(id)).ifPresent(...);
 
 // Wrap runnables
-Wrappers.guarded(() -> discussionService.incrementViewCount(root));
+AntiPatterns.guarded(() -> discussionService.incrementViewCount(root));
 ```
 
 ### Getting `Optional` elements of array or `List`, 
 
 ```java
-import com.github.fluorumlabs.antipatterns.Optionals;
+import com.github.fluorumlabs.antipatterns.AntiPatterns;
 
 ...
 
 // Get first element of list/array or Optional.empty() if list/array is null or empty
-Optionals.getFirst(someList).ifPresent(...);
+AntiPatterns.getFirst(someList).ifPresent(...);
 
 // Get 16-th element of list/array or Optional.empty() if list/array is null or has less then 17 elements
-Optionals.get(someList, 16).ifPresent(...);
+AntiPatterns.get(someList, 16).ifPresent(...);
 ```
 
 ### Trying sequentially suppliers of `Optional`
 
 ```java
-import com.github.fluorumlabs.antipatterns.Optionals;
+import com.github.fluorumlabs.antipatterns.AntiPatterns;
 
 ...
 
 // First try getEntityFromUrl, then, if it fails, getEntityFromSession, otherwise obtain default entity
-SomeEntity entity = Optionals.trySequentially(this::getEntityFromUrl, 
+SomeEntity entity = AntiPatterns.trySequentially(this::getEntityFromUrl, 
                                               this::getEntityFromSession, 
                                               this::getDefaultEntity)
     .orElseThrow(EntityNotFound::new);
@@ -59,8 +59,8 @@ SomeEntity entity = Optionals.trySequentially(this::getEntityFromUrl,
 ### Simple builders for arrays and maps
 
 ```java
-import static com.github.fluorumlabs.antipatterns.Builders.array;
-import static com.github.fluorumlabs.antipatterns.Builders.hashMap;
+import static com.github.fluorumlabs.antipatterns.AntiPatterns.array;
+import static com.github.fluorumlabs.antipatterns.AntiPatterns.hashMap;
 
 ...
 
@@ -75,7 +75,7 @@ Map<String,Option> options = hashMap(option1 -> optionObject1,
 ### RegExp helpers
 
 ```java
-import com.github.fluorumlabs.antipatterns.Strings;
+import com.github.fluorumlabs.antipatterns.AntiPatterns;
 
 ...
 
@@ -87,16 +87,16 @@ private Map<String,String> properties;
 ...
 
 // Replace tokens [[...]] with properties
-String result = Strings.replaceFunctional(TEMPLATE_PATTERN, message, groups -> properties.get(groups[1]));
+String result = AntiPatterns.replaceFunctional(TEMPLATE_PATTERN, message, groups -> properties.get(groups[1]));
 
 // Get pattern matches as stream
-Stream<String[]> groups = Strings.matchAsStream(TEMPLATE_PATTERN, message);
+Stream<String[]> groups = AntiPatterns.matchAsStream(TEMPLATE_PATTERN, message);
 ```
 
 ### String interpolation
 
 ```java
-import static com.github.fluorumlabs.antipatterns.Strings.interpolate;
+import static com.github.fluorumlabs.antipatterns.AntiPatterns.interpolate;
 
 ...
 
@@ -110,23 +110,23 @@ String result = interpolate("${percent %.2f}% completed", percent -> 100*progres
 ### Safe casting of objects
 
 ```java
-import com.github.fluorumlabs.antipatterns.Classes;
+import com.github.fluorumlabs.antipatterns.AntiPatterns;
 
 ...
 
 // Cast baseEntity to Entity, or return Optional.empty() if it's not possible
-Optional<Entity> entity = Classes.safeCast(baseEntity, Entity.class);
+Optional<Entity> entity = AntiPatterns.safeCast(baseEntity, Entity.class);
 
 // Cast baseEntity to Entity in stream
 Stream<Entity> entities = baseEntities.stream()
-    .map(Classes.safeCast(Entity.class))
+    .map(AntiPatterns.safeCast(Entity.class))
     .filter(Objects::nonNull);
 ```
 
 ### Access private methods/fields/constructors in a type-safe manner
 
 ```java
-import com.github.fluorumlabs.antipatterns.Classes;
+import com.github.fluorumlabs.antipatterns.AntiPatterns;
 
 ...
 
@@ -137,7 +137,7 @@ private interface BooleanMirror {
     void FALSE(Boolean value);
 
     static BooleanMirror attach() {
-        return Classes.attachStatic(BooleanMirror.class);
+        return AntiPatterns.attachStatic(BooleanMirror.class);
     }
 }
 
@@ -147,7 +147,7 @@ BooleanMirror.attach().FALSE(true);
 ...
 
 // Add fluent API to third-party libraries
-private interface FluentList<T> extends Classes.Attachable<List<T>> {
+private interface FluentList<T> extends AntiPatterns.Attachable<List<T>> {
     @ReturnType(boolean.class)
     FluentList<T> add(T value);
 
@@ -169,7 +169,7 @@ List<String> list = fluentList.instance();
 ### Upgrade object instance to a subclass
 
 ```java
-import com.github.fluorumlabs.antipatterns.Classes;
+import com.github.fluorumlabs.antipatterns.AntiPatterns;
 
 ...
 
@@ -183,20 +183,20 @@ public class WebpageRouteRegistry extends ApplicationRouteRegistry {
 ...
 
 // upgrade ApplicationRouteRegistry to WebpageRouteRegistry
-RouteRegistry newRegistry = Classes.upgrade(getRouteRegistry(), WebpageRouteRegistry.class);
+RouteRegistry newRegistry = AntiPatterns.upgrade(getRouteRegistry(), WebpageRouteRegistry.class);
 
 // make a shallow clone
-Entity sameButDifferent = Classes.shallowClone(entity);
+Entity sameButDifferent = AntiPatterns.shallowClone(entity);
 ```
 
 ### Access trusted MethodHandles.Lookup instance
 
 ```java
-import com.github.fluorumlabs.antipatterns.Classes;
+import com.github.fluorumlabs.antipatterns.AntiPatterns;
 
 ...
 
-MethodHandle Matcher_getMatchedGroupIndex = Classes.lookupAll().findVirtual(Matcher.class, "getMatchedGroupIndex", MethodType.methodType(int.class, String.class));
+MethodHandle Matcher_getMatchedGroupIndex = AntiPatterns.lookupAll().findVirtual(Matcher.class, "getMatchedGroupIndex", MethodType.methodType(int.class, String.class));
 ```
 
 ## Usage
@@ -205,6 +205,6 @@ MethodHandle Matcher_getMatchedGroupIndex = Classes.lookupAll().findVirtual(Matc
 <dependency>
    <groupId>com.github.fluorumlabs</groupId>
    <artifactId>antipatterns</artifactId>
-   <version>1.0.0-alpha1</version>
+   <version>1.0.0-alpha2</version>
 </dependency>
 ```

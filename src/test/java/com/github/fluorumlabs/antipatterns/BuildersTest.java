@@ -16,9 +16,9 @@ public class BuildersTest {
     @Test
     public void hashMap() {
         Assert.assertThat("Empty map is constructed",
-                Builders.hashMap().isEmpty(), is(true));
+                AntiPatterns.hashMap().isEmpty(), is(true));
 
-        Map<String, Integer> map = Builders.hashMap(a -> 1, b -> 2);
+        Map<String, Integer> map = AntiPatterns.hashMap(a -> 1, b -> 2);
 
         Assert.assertThat("Map contains value for 'a'",
                 map.get("a"), is(1));

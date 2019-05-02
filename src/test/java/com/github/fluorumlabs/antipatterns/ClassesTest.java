@@ -21,10 +21,10 @@ public class ClassesTest {
         List<String> list = new ArrayList<>();
 
         Assert.assertThat("Result is empty if types are incompatible",
-                Classes.safeCast(list, Set.class).isPresent(), is(false));
+                AntiPatterns.safeCast(list, Set.class).isPresent(), is(false));
 
         Assert.assertThat("Result is not empty if types compatible",
-                Classes.safeCast(list, ArrayList.class).orElse(null), is(list));
+                AntiPatterns.safeCast(list, ArrayList.class).orElse(null), is(list));
     }
 
     @SuppressWarnings("rawtypes")
@@ -32,8 +32,8 @@ public class ClassesTest {
     public void safeCastFunction() {
         List<String> list = new ArrayList<>();
 
-        Function<List, Set> incompatible = Classes.safeCast(Set.class);
-        Function<List, ArrayList> compatible = Classes.safeCast(ArrayList.class);
+        Function<List, Set> incompatible = AntiPatterns.safeCast(Set.class);
+        Function<List, ArrayList> compatible = AntiPatterns.safeCast(ArrayList.class);
 
         Assert.assertThat("Result is null if types are incompatible",
                 incompatible.apply(list), nullValue());
@@ -64,7 +64,7 @@ public class ClassesTest {
         String getValue();
 
         static TestInstanceFields attach(TestSuperClass instance) {
-            return Classes.attach(TestInstanceFields.class, instance);
+            return AntiPatterns.attach(TestInstanceFields.class, instance);
         }
     }
 
@@ -129,7 +129,7 @@ public class ClassesTest {
         void staticFinalField(Integer newValue);
 
         static TestStaticFields attach() {
-            return Classes.attachStatic(TestStaticFields.class);
+            return AntiPatterns.attachStatic(TestStaticFields.class);
         }
     }
 
@@ -184,7 +184,7 @@ public class ClassesTest {
         String finalMethod();
 
         static TestVirtualMethods attach(TestSuperClass instance) {
-            return Classes.attach(TestVirtualMethods.class, instance);
+            return AntiPatterns.attach(TestVirtualMethods.class, instance);
         }
     }
 
@@ -218,7 +218,7 @@ public class ClassesTest {
         Integer testStatic(int value);
 
         static TestStaticMethods attach() {
-            return Classes.attachStatic(TestStaticMethods.class);
+            return AntiPatterns.attachStatic(TestStaticMethods.class);
         }
     }
 
@@ -244,7 +244,7 @@ public class ClassesTest {
         TestSuperClass newInstance(String value);
 
         static TestConstructors attach() {
-            return Classes.attachStatic(TestConstructors.class);
+            return AntiPatterns.attachStatic(TestConstructors.class);
         }
     }
 
@@ -269,7 +269,7 @@ public class ClassesTest {
         String test();
 
         static TestSuperMethods attach(TestSuperClass instance) {
-            return Classes.attach(TestSuperMethods.class, instance);
+            return AntiPatterns.attach(TestSuperMethods.class, instance);
         }
     }
 
@@ -295,7 +295,7 @@ public class ClassesTest {
         }
 
         static TestDefaultMethods attach(TestSuperClass instance) {
-            return Classes.attach(TestDefaultMethods.class, instance);
+            return AntiPatterns.attach(TestDefaultMethods.class, instance);
         }
     }
 
@@ -323,7 +323,7 @@ public class ClassesTest {
         Optional<String> field();
 
         static TestOptionalWrapping attach(TestSuperClass instance) {
-            return Classes.attach(TestOptionalWrapping.class, instance);
+            return AntiPatterns.attach(TestOptionalWrapping.class, instance);
         }
     }
 
@@ -348,7 +348,7 @@ public class ClassesTest {
 
     //////////////////////////////////////////////////////////////////////////////////////////////
 
-    private interface TestFluentAPI<T> extends Classes.Attachable<List<T>> {
+    private interface TestFluentAPI<T> extends AntiPatterns.Attachable<List<T>> {
         @ReturnType(boolean.class)
         TestFluentAPI<T> add(T value);
 
@@ -356,7 +356,7 @@ public class ClassesTest {
         TestFluentAPI<T> addAll(@ArgumentType(Collection.class) TestFluentAPI<T> other);
 
         static <T> TestFluentAPI<T> attach(List<T> instance) {
-            return Classes.attach(TestFluentAPI.class, instance);
+            return AntiPatterns.attach(TestFluentAPI.class, instance);
         }
     }
 
@@ -384,7 +384,7 @@ public class ClassesTest {
     @Test
     public void testUpgrade() {
         TestSuperClass testSuperClass = new TestSuperClass();
-        TestSuperClass.TestClass2 upgradedInstance = Classes.upgrade(testSuperClass, TestSuperClass.TestClass2.class);
+        TestSuperClass.TestClass2 upgradedInstance = AntiPatterns.upgrade(testSuperClass, TestSuperClass.TestClass2.class);
 
         Assert.assertThat("Upgraded instance is of correct class",
                 upgradedInstance, is(instanceOf(TestSuperClass.TestClass.class)));
@@ -402,7 +402,7 @@ public class ClassesTest {
     @Test
     public void testUpgradeIndirect() {
         OptionalInt optionalInt = OptionalInt.of(17);
-        Integer integer = Classes.upgradeIndirect(optionalInt, Integer.class);
+        Integer integer = AntiPatterns.upgradeIndirect(optionalInt, Integer.class);
 
         Assert.assertThat("OptionalInt is upgraded to Integer",
                 integer, is(17));
@@ -411,7 +411,7 @@ public class ClassesTest {
     @Test
     public void testUpgradeIndirectWithRemap() {
         TestSuperClass testSuperClass = new TestSuperClass();
-        TestSuperClass.TestClass2 upgradedInstance = Classes.upgradeIndirect(testSuperClass, TestSuperClass.TestClass2.class, Builders.hashMap(value -> "testClassMarker"));
+        TestSuperClass.TestClass2 upgradedInstance = AntiPatterns.upgradeIndirect(testSuperClass, TestSuperClass.TestClass2.class, AntiPatterns.hashMap(value -> "testClassMarker"));
 
         Assert.assertThat("Original field is uninitialized",
                 upgradedInstance.getValue(), is("null-get-value"));
@@ -429,7 +429,7 @@ public class ClassesTest {
         void FALSE(Boolean value);
 
         static BooleanMirror attach() {
-            return Classes.attachStatic(BooleanMirror.class);
+            return AntiPatterns.attachStatic(BooleanMirror.class);
         }
     }
 

@@ -2,6 +2,7 @@ package com.github.fluorumlabs.antipatterns;
 
 import com.github.fluorumlabs.antipatterns.annotations.Constructor;
 import com.github.fluorumlabs.antipatterns.annotations.*;
+import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 
@@ -16,15 +17,415 @@ import java.lang.invoke.SerializedLambda;
 import java.lang.reflect.*;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
- * Helper methods for dealing with classes and instances
+ * Helper methods to make java development easier and the support harder
  */
-public final class Classes {
-    private Classes() {
+public final class AntiPatterns {
+    private AntiPatterns() {
     } // not instantiable
+
+    /**
+     * Try suppliers sequentially until first success and return optional value
+     *
+     * @param suppliers Suppliers
+     * @param <T>       value type
+     * @return Optional of T if successfull, or Optional.empty() otherwise
+     */
+    @SafeVarargs
+    public static <T> Optional<T> trySequentially(@Nonnull Supplier<Optional<T>>... suppliers) {
+        Validate.notNull(suppliers, "suppliers must not be null");
+        Validate.noNullElements(suppliers, "suppliers must not contain null elements");
+
+        return Stream.of(suppliers)
+                .map(Supplier::get)
+                .filter(Optional::isPresent)
+                .findFirst()
+                .orElse(Optional.empty());
+    }
+
+    /**
+     * Convert optional value to stream of zero or one elements
+     *
+     * @param value value (can be Optional.empty())
+     * @param <T>   value type
+     * @return stream containing this value
+     */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    public static <T> Stream<T> asStream(@Nonnull Optional<T> value) {
+        Validate.notNull(value, "value must not be null");
+
+        return value.map(Stream::of).orElseGet(Stream::empty);
+    }
+
+    /**
+     * Return first element of list if any
+     *
+     * @param list list
+     * @param <T>  element type
+     * @return optional first element, or empty if list is empty or first element is null
+     */
+    public static <T> Optional<T> getFirst(List<T> list) {
+        return get(list, 0);
+    }
+
+    /**
+     * Return first element of array if any
+     *
+     * @param array array
+     * @param <T>   element type
+     * @return optional first element, or empty if list is empty or first element is null
+     */
+    public static <T> Optional<T> getFirst(T[] array) {
+        return get(array, 0);
+    }
+
+    /**
+     * Return Nth element of list if any
+     *
+     * @param list  list
+     * @param index index of element to get
+     * @param <T>   element type
+     * @return optional Nth element, or empty if list has not enough elements
+     * or Nth element is null
+     */
+    public static <T> Optional<T> get(List<T> list, int index) {
+        if (index < 0) {
+            throw new IndexOutOfBoundsException("index must not be negative");
+        }
+        if (list == null || list.size() <= index) {
+            return Optional.empty();
+        } else {
+            return Optional.ofNullable(list.get(index));
+        }
+    }
+
+    /**
+     * Return Nth element of array if any
+     *
+     * @param array array
+     * @param index index of element to get
+     * @param <T>   element type
+     * @return optional Nth element, or empty if array has not enough elements
+     * or Nth element is null
+     */
+    public static <T> Optional<T> get(T[] array, int index) {
+        if (index < 0) {
+            throw new IndexOutOfBoundsException("index must not be negative");
+        }
+        if (array == null || array.length <= index) {
+            return Optional.empty();
+        } else {
+            return Optional.ofNullable(array[index]);
+        }
+    }
+
+    /**
+     * Create array of elements without any memory overhead
+     * <p>
+     * Usage (array creation):
+     * {@code String[] array = Builders.array("string a", "string b"); }
+     * <p>
+     * Usage (List.toArray)
+     * {@code String[] array = listOfString.toArray(Builders.array()); }
+     *
+     * @param args elements
+     * @param <T>  element type
+     * @return array of elements, never null
+     */
+    @SafeVarargs
+    public static <T> T[] array(T... args) {
+        return args;
+    }
+
+    /**
+     * Construct new HashMap.
+     * <p>
+     * Usage example:
+     * {@code Map<String,String> map = hashMap(name -> "vaadin-board", version -> "1.3.0");}
+     * <p>
+     * CAUTION: requires `-parameters` option for `javac`
+     *
+     * @param <T>           map value type
+     * @param keyValuePairs key-value pairs
+     * @return Map
+     */
+    @SafeVarargs
+    public static <T> Map<String, T> hashMap(AntiPatterns.NamedValue<T>... keyValuePairs) {
+        Validate.noNullElements(keyValuePairs, "keyValuePairs must not contain null elements");
+        Map<String, T> map = new HashMap<>(keyValuePairs.length);
+
+        for (AntiPatterns.NamedValue<T> keyValuePair : keyValuePairs) {
+            String name = keyValuePair.name();
+            T value = keyValuePair.value(name);
+            map.put(name, value);
+        }
+
+        return map;
+    }
+
+    /**
+     * Call supplier, catch RuntimeException and return empty optional
+     * <p>
+     * Example usage:
+     * {@code Wrappers.guarded(() -> Integer.parse("234234j")).ifPresent(...);}
+     *
+     * @param supplier supplier of T
+     * @param <T>      result type
+     * @return Optional of {@code T}
+     */
+    public static <T> Optional<T> guarded(@Nonnull Supplier<T> supplier) {
+        Validate.notNull(supplier, "supplier must not be null");
+
+        try {
+            return Optional.of(supplier.get());
+        } catch (RuntimeException ignore) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Call supplier, catch RuntimeException and return empty optional
+     * <p>
+     * Example usage:
+     * {@code Wrappers.guarded(() -> Optional.of(Integer.parse("234234j"))).ifPresent(...);}
+     *
+     * @param supplier supplier of {@link Optional} of {@code T}
+     * @param <T>      result type
+     * @return Optionsl of {@code T}
+     */
+    public static <T> Optional<T> guardedOptional(@Nonnull Supplier<Optional<T>> supplier) {
+        Validate.notNull(supplier, "supplier must not be null");
+
+        try {
+            return supplier.get();
+        } catch (RuntimeException ignore) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Call runnable, catch RuntimeException and return
+     * <p>
+     * Example usage:
+     * {@code Wrappers.guarded(() -> discussionService.incrementViewCount(root));}
+     *
+     * @param runnable runnable to execute
+     */
+    public static void guarded(@Nonnull Runnable runnable) {
+        Validate.notNull(runnable, "runnable must not be null");
+
+        try {
+            runnable.run();
+        } catch (RuntimeException ignore) {
+            // ignore
+        }
+    }
+
+    /**
+     * Wrap function with a try..catch block and return null if RuntimeException occurred
+     * <p>
+     * Example usage:
+     * {@code randomOptional.map(Wrappers.guarded(id -> Integer.parse(id)).ifPresent(...);}
+     *
+     * @param mapper function to wrap
+     * @param <T>    function argument type
+     * @param <U>    function result type
+     * @return wrapped function
+     */
+    public static <T, U> Function<T, U> guarded(@Nonnull Function<T, U> mapper) {
+        Validate.notNull(mapper, "mapper must not be null");
+
+        return x -> {
+            try {
+                return mapper.apply(x);
+            } catch (RuntimeException ignore) {
+                return null;
+            }
+        };
+    }
+
+    private static final Pattern INTERPOLATION_PATTERN = Pattern.compile("([\\$]{1,2})\\{([a-zA-Z0-9_.]+)(\\s%%([^}]+))?\\}");
+
+    /**
+     * String replacement in a functional style. {@code replacement} is a function,
+     * whose argument is an array of Strings containing mathed groups (with {@code group(0)}
+     * as a first element), and returning String to replace current matched occurence.
+     * <p>
+     * If {@code replacer} returns {@link Optional#empty()}, no replacement will occur.
+     *
+     * @param pattern  compiled pattern
+     * @param input    input string
+     * @param replacer function mapping array of groups to replacement string
+     * @return replacement result
+     */
+    @Nonnull
+    public static String replaceFunctional(@Nonnull Pattern pattern, @Nonnull String input, @Nonnull AntiPatterns.Replacer replacer) {
+        Validate.notNull(input, "input must not be null");
+        Validate.notNull(pattern, "pattern must not be null");
+        Validate.notNull(replacer, "replacer must not be null");
+
+        Matcher matcher = pattern.matcher(input);
+        StringBuffer sb = new StringBuffer();
+        while (matcher.find()) {
+            int groupCount = matcher.groupCount() + 1;
+            String[] groups = new String[groupCount];
+            for (int i = 0; i < groupCount; i++) {
+                groups[i] = matcher.group(i);
+            }
+            replacer.getReplacement(groups)
+                    .ifPresent(replacement -> matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement)));
+        }
+        return matcher.appendTail(sb).toString();
+    }
+
+    /**
+     * Return iterator over array of Strings containing matched groups, with
+     * {@code group(0)} as a first element.
+     *
+     * @param pattern compiled pattern
+     * @param input   input string
+     * @return iterator
+     */
+    @Nonnull
+    public static Iterator<String[]> matchIterator(@Nonnull Pattern pattern, @Nonnull String input) {
+        Validate.notNull(pattern, "pattern must not be null");
+        Validate.notNull(input, "input must not be null");
+
+        return new AntiPatterns.MatcherIterator(pattern, input);
+    }
+
+    /**
+     * Return stream of matched groups
+     *
+     * @param pattern compiled pattern
+     * @param input   input string
+     * @return stream of array of strings, containing matched groups
+     */
+    @Nonnull
+    public static Stream<String[]> matchAsStream(@Nonnull Pattern pattern, @Nonnull String input) {
+        Validate.notNull(pattern, "pattern must not be null");
+        Validate.notNull(input, "input must not be null");
+
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(
+                matchIterator(pattern, input), Spliterator.ORDERED | Spliterator.NONNULL), false);
+
+    }
+
+    /**
+     * Functional interface for computing replacement string for {@link AntiPatterns#replaceFunctional(Pattern, String, AntiPatterns.Replacer)}
+     */
+    @FunctionalInterface
+    public interface Replacer {
+        /**
+         * Compute replacement
+         *
+         * @param groups Matcher groups with {@code group(0)} as a first element
+         * @return Optional replacement string
+         */
+        Optional<String> getReplacement(String... groups);
+    }
+
+    /**
+     * Iterator for RegExp matches
+     */
+    private static class MatcherIterator implements Iterator<String[]> {
+        private final Matcher matcher;
+        private boolean hasNonConsumedMatch = false;
+
+        private MatcherIterator(Pattern pattern, String input) {
+            this.matcher = pattern.matcher(input);
+        }
+
+        public String[] next() {
+            if (!hasNext())
+                throw new NoSuchElementException();
+
+            int groupCount = matcher.groupCount() + 1;
+            String[] groups = new String[groupCount];
+            for (int i = 0; i < groupCount; i++) {
+                groups[i] = matcher.group(i);
+            }
+
+            return groups;
+        }
+
+        public boolean hasNext() {
+            return hasNonConsumedMatch || (hasNonConsumedMatch = matcher.find());
+        }
+    }
+
+
+    /**
+     * Perform string interpolation (with benefits).
+     * <p>
+     * It's possible to specify formatting rules after space (all String.format specifiers are allowed); default is
+     * to use %s. Tokens can be a deep reference for inner objects; it is possible to access value.property via
+     * ${value.property} syntax.
+     * <p>
+     * If token can be escaped by putting double '$' signs: "$${ignoredToken}" will be shown as "${ignoredToken}"
+     * without any errors.
+     * <p>
+     * Usage:
+     * {@code String result = interpolate("File '${fileName}' cannot be found", fileName -> file.getPath()); }
+     * <p>
+     * {@code String result = interpolate("Found ${entries %10d} entries", fileName -> entries.length; }
+     *
+     * @param format        template
+     * @param keyValuePairs parameters
+     * @return formatted string
+     */
+    @SafeVarargs
+    public static String interpolate(@Nonnull String format, AntiPatterns.NamedValue<Object>... keyValuePairs) {
+        Validate.notNull(format, "format must not be null");
+        Validate.noNullElements(keyValuePairs, "keyValuePairs must not contain null elements");
+
+        // Parameter indices
+        Map<String, Object> parameters = hashMap(keyValuePairs);
+        Map<String, Integer> paramIndices = new HashMap<>(); // parameter indices
+        List<Object> values = new ArrayList<>();
+
+        // Process format string
+        String metaFormat = replaceFunctional(INTERPOLATION_PATTERN, StringUtils.replace(format, "%", "%%"), matches -> {
+            if (matches[1].length() > 1) {
+                // Meaning we have '$$' in the beginning -- just dump the token as is
+                return Optional.of("${" + matches[2] + StringUtils.defaultString(matches[3], "") + "}");
+            } else {
+                // We have a token, with or without extra formatting
+                String key = matches[2];
+                String fmt = StringUtils.defaultString(matches[4], "s");
+
+                if (paramIndices.containsKey(key)) {
+                    // We already seen that key
+                    return Optional.of("%" + paramIndices.get(key) + "$" + fmt);
+                } else {
+                    // Not seen yet
+                    Object value = null;
+                    try {
+                        value = PropertyUtils.getNestedProperty(parameters, key);
+                    } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                        throw new IllegalArgumentException(String.format("Cannot get value for token %s", key), e);
+                    }
+
+                    int index = values.size() + 1;
+                    paramIndices.put(key, index);
+                    values.add(value);
+
+                    return Optional.of("%" + index + "$" + fmt);
+                }
+
+            }
+        });
+
+        // kthxbye
+        return String.format(metaFormat, values.toArray());
+    }
 
     /**
      * Perform safe type casting
@@ -141,7 +542,7 @@ public final class Classes {
      * Create a new proxy instance, mirroring static members of class, specified in `@TargetClass` annotation.
      *
      * @param mirrorInterface Interface having `@TargetClass` annotation
-     * @param <T> Proxy type
+     * @param <T>             Proxy type
      * @return Proxy instance
      */
     public static <T> T attachStatic(@Nonnull Class<T> mirrorInterface) {
@@ -154,7 +555,7 @@ public final class Classes {
      * Create a shallow clone of instance. That is -- a new instance with exact same values in its fields
      *
      * @param instance object to clone
-     * @param <T> object type
+     * @param <T>      object type
      * @return new instance of object
      */
     @SuppressWarnings("unchecked")
@@ -176,7 +577,7 @@ public final class Classes {
      *
      * @param instance instance to upgrade
      * @param target   target class. Instance must be super class for target.
-     * @param <T> resulting object type
+     * @param <T>      resulting object type
      * @return new instance
      */
     public static <T> T upgrade(@Nonnull Object instance, @Nonnull Class<T> target) {
@@ -197,7 +598,7 @@ public final class Classes {
      *
      * @param instance instance to upgrade
      * @param target   target class
-     * @param <T> resulting object type
+     * @param <T>      resulting object type
      * @return new instance
      */
     public static <T> T upgradeIndirect(@Nonnull Object instance, @Nonnull Class<T> target) {
@@ -218,7 +619,7 @@ public final class Classes {
      * @param instance     instance to upgrade
      * @param target       target class
      * @param fieldMapping field remapping
-     * @param <T> resulting object type
+     * @param <T>          resulting object type
      * @return new instance
      */
     @SuppressWarnings("unchecked")
@@ -233,7 +634,7 @@ public final class Classes {
         // This is needed to get otherwise not accessible DirectMethodHandle.Constructor class,
         // and, therefore, call allocate instances without direct calls to sun.misc.Unsafe
         try {
-            MethodHandle anyConstructor = lookupAll().unreflectConstructor(Optionals.getFirst(target.getDeclaredConstructors()).orElseThrow(IllegalStateException::new));
+            MethodHandle anyConstructor = lookupAll().unreflectConstructor(AntiPatterns.getFirst(target.getDeclaredConstructors()).orElseThrow(IllegalStateException::new));
 
             // Create a new empty instance of target class
             newInstance = (T) lookupAll().findStatic(anyConstructor.getClass(), "allocateInstance", MethodType.methodType(Object.class, Object.class)).invoke(anyConstructor);
@@ -277,6 +678,7 @@ public final class Classes {
     public interface NamedValue<T> extends Serializable, MethodFinder, Function<String, T> {
         /**
          * Name part of NamedValue. Determined in run time from lambda argument name
+         *
          * @return name
          */
         default String name() {
@@ -289,6 +691,7 @@ public final class Classes {
 
         /**
          * Value part of NamedValue.
+         *
          * @param name (dummy) argument, whose name (in lambda) will become a {@link NamedValue#name()}
          * @return value
          */
@@ -298,7 +701,7 @@ public final class Classes {
     }
 
     /**
-     * Interface providing target instance for use with {@link Classes#attach(Class, Object)}.
+     * Interface providing target instance for use with {@link AntiPatterns#attach(Class, Object)}.
      * <p>
      * When this interface is used as a super, {@link TargetClass} annotation is not needed.
      *
@@ -318,12 +721,12 @@ public final class Classes {
      *
      * @param iface    Mirror interface
      * @param instance Object instance. Can be null when only static methods are needed.
-     * @param <T> target class
+     * @param <T>      target class
      * @return Mirror instance
      */
     @SuppressWarnings("unchecked")
     private static <T> T attachMirror(@Nonnull Class<?> iface, @Nullable Object instance) {
-        Class<?> targetClass = Optionals.trySequentially(
+        Class<?> targetClass = AntiPatterns.trySequentially(
                 () -> Optional.ofNullable(iface.getAnnotation(TargetClass.class)).map(TargetClass::value),
                 () -> getTargetClass(iface))
                 .orElse(null);
@@ -358,7 +761,7 @@ public final class Classes {
                 .filter(type -> ((ParameterizedType) type).getRawType() == Attachable.class)
                 .findAny()
                 .map(safeCast(ParameterizedType.class))
-                .flatMap(type -> Optionals.getFirst(type.getActualTypeArguments()))
+                .flatMap(type -> AntiPatterns.getFirst(type.getActualTypeArguments()))
                 .map(type -> {
                     if (type instanceof Class) {
                         return (Class<?>) type;

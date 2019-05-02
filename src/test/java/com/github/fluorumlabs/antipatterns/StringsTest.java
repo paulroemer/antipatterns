@@ -13,27 +13,27 @@ public class StringsTest {
     @Test
     public void interpolate() {
         Assert.assertThat("String with no tokens is processed",
-                Strings.interpolate("Abc Abc"), is("Abc Abc"));
+                AntiPatterns.interpolate("Abc Abc"), is("Abc Abc"));
 
         Assert.assertThat("String with no tokens is processed, named parameters ignored",
-                Strings.interpolate("Abc Abc", number -> -5), is("Abc Abc"));
+                AntiPatterns.interpolate("Abc Abc", number -> -5), is("Abc Abc"));
 
         Assert.assertThat("String with tokens is processed",
-                Strings.interpolate("Text ${number}", number -> -5), is("Text -5"));
+                AntiPatterns.interpolate("Text ${number}", number -> -5), is("Text -5"));
 
         Assert.assertThat("String with deep tokens is processed",
-                Strings.interpolate("${value.simpleName}", value -> Strings.class), is("Strings"));
+                AntiPatterns.interpolate("${value.simpleName}", value -> AntiPatterns.class), is("AntiPatterns"));
 
         Assert.assertThat("String with tokens is processed, format applied",
-                Strings.interpolate("${number %(d}", number -> -5), is("(5)"));
+                AntiPatterns.interpolate("${number %(d}", number -> -5), is("(5)"));
 
         Assert.assertThat("String with tokens is processed, escaped token",
-                Strings.interpolate("$${number %(d}"), is("${number %(d}"));
+                AntiPatterns.interpolate("$${number %(d}"), is("${number %(d}"));
 
         MutableInt mutableInt = new MutableInt(0);
 
         Assert.assertThat("String with tokens is processed, parameters are computed only once",
-                Strings.interpolate("${number %(d} ${number %(d}", number -> mutableInt.decrementAndGet()), is("(1) (1)"));
+                AntiPatterns.interpolate("${number %(d} ${number %(d}", number -> mutableInt.decrementAndGet()), is("(1) (1)"));
     }
 
 }
