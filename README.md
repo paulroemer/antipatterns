@@ -3,7 +3,7 @@
 
 [![Maven metadata URL](https://img.shields.io/maven-metadata/v/http/oss.sonatype.org/content/groups/public/com/github/fluorumlabs/antipatterns/maven-metadata.xml.svg)](https://oss.sonatype.org/content/groups/public/com/github/fluorumlabs/antipatterns/) 
 [![GitHub](https://img.shields.io/github/license/fluorumlabs/antipatterns.svg)](https://github.com/fluorumlabs/antipatterns/blob/master/LICENSE)
- [![Build Status](https://travis-ci.com/fluorumlabs/antipatterns.svg?branch=master)](https://travis-ci.com/fluorumlabs/antipatterns) 
+[![Build Status](https://travis-ci.org/fluorumlabs/antipatterns.svg?branch=master)](https://travis-ci.org/fluorumlabs/antipatterns) 
 
 ## What?
 
