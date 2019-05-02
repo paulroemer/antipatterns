@@ -155,7 +155,7 @@ private interface FluentList<T> extends AntiPatterns.Attachable<List<T>> {
     FluentList<T> addAll(@ArgumentType(Collection.class) TestFluentAPI<T> other);
 
     static <T> FluentList<T> attach(List<T> instance) {
-        return Classes.attach(FluentList.class, instance);
+        return AntiPatterns.attach(FluentList.class, instance);
     }
 }
 
