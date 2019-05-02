@@ -174,9 +174,9 @@ import com.github.fluorumlabs.antipatterns.Classes;
 ...
 
 public class WebpageRouteRegistry extends ApplicationRouteRegistry {
-	@Override
-	public Optional<Class<? extends Component>> getNavigationTarget(String pathString, List<String> segments) {
-    ...
+    @Override
+    public Optional<Class<? extends Component>> getNavigationTarget(String pathString, List<String> segments) {
+        ...
     }
 }
 
