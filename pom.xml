@@ -6,7 +6,7 @@
 
     <groupId>com.github.fluorumlabs</groupId>
     <artifactId>antipatterns</artifactId>
-    <version>1.0.0-alpha2</version>
+    <version>1.0.0-alpha3</version>
 
     <name>antipatterns</name>
     <description>Collection of helpers to extend Java functionality</description>
@@ -53,8 +53,8 @@
         </dependency>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
-            <artifactId>findbugs</artifactId>
-            <version>3.0.1</version>
+            <artifactId>jsr305</artifactId>
+            <version>3.0.2</version>
         </dependency>
 
         <!-- Test dependencies -->

@@ -205,6 +205,6 @@ MethodHandle Matcher_getMatchedGroupIndex = AntiPatterns.lookupAll().findVirtual
 <dependency>
    <groupId>com.github.fluorumlabs</groupId>
    <artifactId>antipatterns</artifactId>
-   <version>1.0.0-alpha2</version>
+   <version>1.0.0-alpha3</version>
 </dependency>
 ```
