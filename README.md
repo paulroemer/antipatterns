@@ -3,13 +3,103 @@
 
 [![Maven metadata URL](https://img.shields.io/maven-metadata/v/http/oss.sonatype.org/content/groups/public/com/github/fluorumlabs/antipatterns/maven-metadata.xml.svg)](https://oss.sonatype.org/content/groups/public/com/github/fluorumlabs/antipatterns/) 
 [![GitHub](https://img.shields.io/github/license/fluorumlabs/antipatterns.svg)](https://github.com/fluorumlabs/antipatterns/blob/master/LICENSE)
- [![Build Status](https://travis-ci.org/fluorumlabs/antipatterns.svg?branch=master)](https://travis-ci.org/fluorumlabs/antipatterns) 
+ [![Build Status](https://travis-ci.com/fluorumlabs/antipatterns.svg?branch=master)](https://travis-ci.com/fluorumlabs/antipatterns) 
 
 ## What?
 
 `antipatterns` is a collection of helpers and weird stuff to make Java development easier and support harder :)
 
 ## Features
+
+### Access private methods/fields/constructors in a type-safe manner
+
+```java
+import com.github.fluorumlabs.antipatterns.AntiPatterns;
+
+...
+
+@TargetClass(Boolean.class)
+private interface BooleanMirror {
+    @Static
+    @DirectField
+    void FALSE(Boolean value);
+
+    static BooleanMirror attach() {
+        return AntiPatterns.attachStatic(BooleanMirror.class);
+    }
+}
+
+// Change Boolean.FALSE to true
+BooleanMirror.attach().FALSE(true);
+
+...
+
+// Add fluent API to third-party libraries
+private interface FluentList<T> extends AntiPatterns.Attachable<List<T>> {
+    @ReturnType(boolean.class)
+    FluentList<T> add(T value);
+
+    @ReturnType(boolean.class)
+    FluentList<T> addAll(@ArgumentType(Collection.class) TestFluentAPI<T> other);
+
+    static <T> FluentList<T> attach(List<T> instance) {
+        return AntiPatterns.attach(FluentList.class, instance);
+    }
+}
+
+...
+
+FluentList<String> fluentList = FluentList.attach(new ArrayList<String>());
+fluentList.add("1").add("2").add("3");
+List<String> list = fluentList.instance();
+```
+
+### Upgrade object instance to a subclass
+
+```java
+import com.github.fluorumlabs.antipatterns.AntiPatterns;
+
+...
+
+public class WebpageRouteRegistry extends ApplicationRouteRegistry {
+    @Override
+    public Optional<Class<? extends Component>> getNavigationTarget(String pathString, List<String> segments) {
+        ...
+    }
+}
+
+...
+
+// upgrade ApplicationRouteRegistry to WebpageRouteRegistry
+RouteRegistry newRegistry = AntiPatterns.upgrade(getRouteRegistry(), WebpageRouteRegistry.class);
+
+// make a shallow clone
+Entity sameButDifferent = AntiPatterns.shallowClone(entity);
+```
+
+### Access trusted MethodHandles.Lookup instance
+
+```java
+import com.github.fluorumlabs.antipatterns.AntiPatterns;
+
+...
+
+MethodHandle Matcher_getMatchedGroupIndex = AntiPatterns.lookupAll().findVirtual(Matcher.class, "getMatchedGroupIndex", MethodType.methodType(int.class, String.class));
+```
+
+### String interpolation
+
+```java
+import static com.github.fluorumlabs.antipatterns.AntiPatterns.interpolate;
+
+...
+
+// Replace tokens with actual values of current user
+String result = interpolate("Hello, ${user.firstName} ${user.lastName}!", user -> getCurrentUser());
+
+// String interpolation with format specifiers
+String result = interpolate("${percent %.2f}% completed", percent -> 100*progressValue);
+``` 
 
 ### Ignoring run-time exceptions
 
@@ -93,20 +183,6 @@ String result = AntiPatterns.replaceFunctional(TEMPLATE_PATTERN, message, groups
 Stream<String[]> groups = AntiPatterns.matchAsStream(TEMPLATE_PATTERN, message);
 ```
 
-### String interpolation
-
-```java
-import static com.github.fluorumlabs.antipatterns.AntiPatterns.interpolate;
-
-...
-
-// Replace tokens with actual values of current user
-String result = interpolate("Hello, ${user.firstName} ${user.lastName}!", user -> getCurrentUser());
-
-// String interpolation with format specifiers
-String result = interpolate("${percent %.2f}% completed", percent -> 100*progressValue);
-``` 
-
 ### Safe casting of objects
 
 ```java
@@ -121,82 +197,6 @@ Optional<Entity> entity = AntiPatterns.safeCast(baseEntity, Entity.class);
 Stream<Entity> entities = baseEntities.stream()
     .map(AntiPatterns.safeCast(Entity.class))
     .filter(Objects::nonNull);
-```
-
-### Access private methods/fields/constructors in a type-safe manner
-
-```java
-import com.github.fluorumlabs.antipatterns.AntiPatterns;
-
-...
-
-@TargetClass(Boolean.class)
-private interface BooleanMirror {
-    @Static
-    @DirectField
-    void FALSE(Boolean value);
-
-    static BooleanMirror attach() {
-        return AntiPatterns.attachStatic(BooleanMirror.class);
-    }
-}
-
-// Change Boolean.FALSE to true
-BooleanMirror.attach().FALSE(true);
-
-...
-
-// Add fluent API to third-party libraries
-private interface FluentList<T> extends AntiPatterns.Attachable<List<T>> {
-    @ReturnType(boolean.class)
-    FluentList<T> add(T value);
-
-    @ReturnType(boolean.class)
-    FluentList<T> addAll(@ArgumentType(Collection.class) TestFluentAPI<T> other);
-
-    static <T> FluentList<T> attach(List<T> instance) {
-        return AntiPatterns.attach(FluentList.class, instance);
-    }
-}
-
-...
-
-FluentList<String> fluentList = FluentList.attach(new ArrayList<String>());
-fluentList.add("1").add("2").add("3");
-List<String> list = fluentList.instance();
-```
-
-### Upgrade object instance to a subclass
-
-```java
-import com.github.fluorumlabs.antipatterns.AntiPatterns;
-
-...
-
-public class WebpageRouteRegistry extends ApplicationRouteRegistry {
-    @Override
-    public Optional<Class<? extends Component>> getNavigationTarget(String pathString, List<String> segments) {
-        ...
-    }
-}
-
-...
-
-// upgrade ApplicationRouteRegistry to WebpageRouteRegistry
-RouteRegistry newRegistry = AntiPatterns.upgrade(getRouteRegistry(), WebpageRouteRegistry.class);
-
-// make a shallow clone
-Entity sameButDifferent = AntiPatterns.shallowClone(entity);
-```
-
-### Access trusted MethodHandles.Lookup instance
-
-```java
-import com.github.fluorumlabs.antipatterns.AntiPatterns;
-
-...
-
-MethodHandle Matcher_getMatchedGroupIndex = AntiPatterns.lookupAll().findVirtual(Matcher.class, "getMatchedGroupIndex", MethodType.methodType(int.class, String.class));
 ```
 
 ## Usage
