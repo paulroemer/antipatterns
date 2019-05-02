@@ -18,7 +18,7 @@ public final class Wrappers {
      * Call supplier, catch RuntimeException and return empty optional
      * <p>
      * Example usage:
-     * AntiPatterns.guarded(() -> Integer.parse("234234j")).ifPresent(...);
+     * {@code AntiPatterns.guarded(() -> Integer.parse("234234j")).ifPresent(...);}
      *
      * @param supplier supplier of T
      * @param <T>      result type
@@ -38,7 +38,7 @@ public final class Wrappers {
      * Call supplier, catch RuntimeException and return empty optional
      * <p>
      * Example usage:
-     * AntiPatterns.guarded(() -> Optional.of(Integer.parse("234234j"))).ifPresent(...);
+     * {@code AntiPatterns.guarded(() -> Optional.of(Integer.parse("234234j"))).ifPresent(...);}
      *
      * @param supplier supplier of {@link Optional} of {@code T}
      * @param <T>      result type
@@ -58,7 +58,7 @@ public final class Wrappers {
      * Call runnable, catch RuntimeException and return
      * <p>
      * Example usage:
-     * AntiPatterns.guarded(() -> discussionService.incrementViewCount(root));
+     * {@code AntiPatterns.guarded(() -> discussionService.incrementViewCount(root));}
      *
      * @param runnable runnable to execute
      */
@@ -76,7 +76,7 @@ public final class Wrappers {
      * Wrap function with a try..catch block and return null if RuntimeException occurred
      * <p>
      * Example usage:
-     * randomOptional.map(AntiPatterns.guarded(id -> Integer.parse(id)).ifPresent(...);
+     * {@code randomOptional.map(AntiPatterns.guarded(id -> Integer.parse(id)).ifPresent(...);}
      *
      * @param mapper function to wrap
      * @param <T>    function argument type

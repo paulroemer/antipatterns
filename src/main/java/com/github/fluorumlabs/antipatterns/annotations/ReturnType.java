@@ -19,7 +19,7 @@ public @interface ReturnType {
 	/**
 	 * Original return type of a target class method
 	 *
-	 * @return
+	 * @return return type
 	 */
 	Class<?> value();
 }

@@ -16,7 +16,7 @@ public @interface TargetClass {
 	/**
 	 * Target class for mirror
 	 *
-	 * @return
+	 * @return target class
 	 */
 	Class<?> value();
 

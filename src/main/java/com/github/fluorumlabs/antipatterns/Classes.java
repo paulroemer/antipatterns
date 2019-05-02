@@ -127,7 +127,7 @@ public final class Classes {
      *
      * @param mirrorInterface Interface having `@TargetClass` annotation
      * @param instance        Instance of target class to attach to
-     * @param <T>
+     * @param <T>             Proxy type
      * @return Proxy instance
      */
     public static <T> T attach(@Nonnull Class<?> mirrorInterface, @Nonnull Object instance) {
@@ -141,7 +141,7 @@ public final class Classes {
      * Create a new proxy instance, mirroring static members of class, specified in `@TargetClass` annotation.
      *
      * @param mirrorInterface Interface having `@TargetClass` annotation
-     * @param <T>
+     * @param <T> Proxy type
      * @return Proxy instance
      */
     public static <T> T attachStatic(@Nonnull Class<T> mirrorInterface) {
@@ -154,7 +154,7 @@ public final class Classes {
      * Create a shallow clone of instance. That is -- a new instance with exact same values in its fields
      *
      * @param instance object to clone
-     * @param <T>
+     * @param <T> object type
      * @return new instance of object
      */
     @SuppressWarnings("unchecked")
@@ -176,7 +176,7 @@ public final class Classes {
      *
      * @param instance instance to upgrade
      * @param target   target class. Instance must be super class for target.
-     * @param <T>
+     * @param <T> resulting object type
      * @return new instance
      */
     public static <T> T upgrade(@Nonnull Object instance, @Nonnull Class<T> target) {
@@ -197,7 +197,7 @@ public final class Classes {
      *
      * @param instance instance to upgrade
      * @param target   target class
-     * @param <T>
+     * @param <T> resulting object type
      * @return new instance
      */
     public static <T> T upgradeIndirect(@Nonnull Object instance, @Nonnull Class<T> target) {
@@ -218,8 +218,8 @@ public final class Classes {
      * @param instance     instance to upgrade
      * @param target       target class
      * @param fieldMapping field remapping
-     * @param <T>
-     * @return
+     * @param <T> resulting object type
+     * @return new instance
      */
     @SuppressWarnings("unchecked")
     public static <T> T upgradeIndirect(@Nonnull Object instance, @Nonnull Class<T> target, @Nonnull Map<String, String> fieldMapping) {
@@ -272,9 +272,13 @@ public final class Classes {
     /**
      * Functional interface capabale of getting argument name
      *
-     * @param <T>
+     * @param <T> value type
      */
     public interface NamedValue<T> extends Serializable, MethodFinder, Function<String, T> {
+        /**
+         * Name part of NamedValue. Determined in run time from lambda argument name
+         * @return name
+         */
         default String name() {
             String name = lastParameter().getName();
             if (name.startsWith("arg")) {
@@ -283,6 +287,11 @@ public final class Classes {
             return name;
         }
 
+        /**
+         * Value part of NamedValue.
+         * @param name (dummy) argument, whose name (in lambda) will become a {@link NamedValue#name()}
+         * @return value
+         */
         default T value(String name) {
             return apply(name);
         }
@@ -309,7 +318,7 @@ public final class Classes {
      *
      * @param iface    Mirror interface
      * @param instance Object instance. Can be null when only static methods are needed.
-     * @param <T>
+     * @param <T> target class
      * @return Mirror instance
      */
     @SuppressWarnings("unchecked")

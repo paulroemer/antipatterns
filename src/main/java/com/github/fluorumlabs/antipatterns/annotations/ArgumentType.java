@@ -18,7 +18,7 @@ public @interface ArgumentType {
 	/**
 	 * Original return type of a target class method
 	 *
-	 * @return
+	 * @return argument type
 	 */
 	Class<?> value();
 }

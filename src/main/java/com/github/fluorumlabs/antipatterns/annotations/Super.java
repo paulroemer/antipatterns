@@ -14,7 +14,7 @@ public @interface Super {
 	/**
 	 * Super class. Target class must be instance of super class.
 	 *
-	 * @return
+	 * @return target super class
 	 */
 	Class<?> value();
 }
