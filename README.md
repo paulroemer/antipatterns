@@ -11,7 +11,7 @@
 
 ## Features
 
-- Wrappers for `Function`/`Map`/`Runnable` for ignoring run-time exceptions (for use with `Optional` and `Stream` API)
+### Wrappers for `Function`/`Map`/`Runnable` for ignoring run-time exceptions (for use with `Optional` and `Stream` API)
 
 ```java
 import com.github.fluorumlabs.antipatterns.Wrappers;
@@ -28,7 +28,7 @@ someStringOptional.map(Wrappers.guarded(id -> Integer.parse(id)).ifPresent(...);
 Wrappers.guarded(() -> discussionService.incrementViewCount(root));
 ```
 
-- Getting `Optional` elements of array or `List`, 
+### Getting `Optional` elements of array or `List`, 
 
 ```java
 import com.github.fluorumlabs.antipatterns.Optionals;
@@ -42,7 +42,7 @@ Optionals.getFirst(someList).ifPresent(...);
 Optionals.get(someList, 16).ifPresent(...);
 ```
 
-- Trying sequentially suppliers of `Optional`
+### Trying sequentially suppliers of `Optional`
 
 ```java
 import com.github.fluorumlabs.antipatterns.Optionals;
@@ -56,7 +56,7 @@ SomeEntity entity = Optionals.trySequentially(this::getEntityFromUrl,
     .orElseThrow(EntityNotFound::new);
 ```
 
-- Simple builders for arrays and maps
+### Simple builders for arrays and maps
 
 ```java
 import static com.github.fluorumlabs.antipatterns.Builders.array;
@@ -72,7 +72,7 @@ Map<String,Option> options = hashMap(option1 -> optionObject1,
                                      option2 -> optionObject2);
 ```
 
-- RegExp helpers
+### RegExp helpers
 
 ```java
 import com.github.fluorumlabs.antipatterns.Strings;
@@ -93,7 +93,7 @@ String result = Strings.replaceFunctional(TEMPLATE_PATTERN, message, groups -> p
 Stream<String[]> groups = Strings.matchAsStream(TEMPLATE_PATTERN, message);
 ```
 
-- String interpolation
+### String interpolation
 
 ```java
 import static com.github.fluorumlabs.antipatterns.Strings.interpolate;
@@ -107,7 +107,7 @@ String result = interpolate("Hello, ${user.firstName} ${user.lastName}!", user -
 String result = interpolate("${percent %.2f}% completed", percent -> 100*progressValue);
 ``` 
 
-- Safe casting of objects
+### Safe casting of objects
 
 ```java
 import com.github.fluorumlabs.antipatterns.Classes;
@@ -123,7 +123,7 @@ Stream<Entity> entities = baseEntities.stream()
     .filter(Objects::nonNull);
 ```
 
-- Access private methods/fields/constructors in a type-safe manner
+### Access private methods/fields/constructors in a type-safe manner
 
 ```java
 import com.github.fluorumlabs.antipatterns.Classes;
@@ -166,7 +166,7 @@ fluentList.add("1").add("2").add("3");
 List<String> list = fluentList.instance();
 ```
 
-- Upgrade object instance to a subclass
+### Upgrade object instance to a subclass
 
 ```java
 import com.github.fluorumlabs.antipatterns.Classes;
@@ -189,7 +189,7 @@ RouteRegistry newRegistry = Classes.upgrade(getRouteRegistry(), WebpageRouteRegi
 Entity sameButDifferent = Classes.shallowClone(entity);
 ```
 
-- Access trusted MethodHandles.Lookup instance
+### Access trusted MethodHandles.Lookup instance
 
 ```java
 import com.github.fluorumlabs.antipatterns.Classes;
