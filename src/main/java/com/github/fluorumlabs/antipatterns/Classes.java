@@ -52,7 +52,7 @@ public final class Classes {
      * Safe type casting for Optional/Stream
      * <p>
      * Usage example:
-     * {@code Optional.of(x).map(AntiPatterns.safeCast(String.class)).ifPresent(...);}
+     * {@code Optional.of(x).map(Classes.safeCast(String.class)).ifPresent(...);}
      * <p>
      * Anti-antipattern hint: for unsafe cast use `Class.class::cast`:
      * {@code Optional.of(x).map(String.class::cast).ifPresent(...);}

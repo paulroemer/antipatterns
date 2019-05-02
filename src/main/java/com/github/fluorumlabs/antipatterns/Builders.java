@@ -16,10 +16,10 @@ public final class Builders {
      * Create array of elements without any memory overhead
      * <p>
      * Usage (array creation):
-     * {@code String[] array = AntiPatterns.array("string a", "string b"); }
+     * {@code String[] array = Builders.array("string a", "string b"); }
      * <p>
      * Usage (List.toArray)
-     * {@code String[] array = listOfString.toArray(AntiPatterns.array()); }
+     * {@code String[] array = listOfString.toArray(Builders.array()); }
      *
      * @param args elements
      * @param <T>  element type
