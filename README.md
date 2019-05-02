@@ -11,7 +11,7 @@
 
 ## Features
 
-### Wrappers for `Function`/`Map`/`Runnable` for ignoring run-time exceptions (for use with `Optional` and `Stream` API)
+### Ignoring run-time exceptions
 
 ```java
 import com.github.fluorumlabs.antipatterns.Wrappers;
