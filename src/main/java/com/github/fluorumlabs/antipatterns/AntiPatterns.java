@@ -8,6 +8,7 @@ import org.apache.commons.lang3.Validate;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.invoke.MethodHandle;
@@ -726,23 +727,31 @@ public final class AntiPatterns {
      */
     @SuppressWarnings("unchecked")
     private static <T> T attachMirror(@Nonnull Class<?> iface, @Nullable Object instance) {
-        Class<?> targetClass = AntiPatterns.trySequentially(
-                () -> Optional.ofNullable(iface.getAnnotation(TargetClass.class)).map(TargetClass::value),
-                () -> getTargetClass(iface))
-                .orElse(null);
+        boolean isApi = false;
+        Class<?> targetClass;
+        if (iface.getAnnotation(TargetClass.API.class) != null) {
+            Validate.isTrue(instance == null, "instance must be null");
+            isApi = true;
+            targetClass = null;
+        } else {
+            targetClass = AntiPatterns.trySequentially(
+                    () -> Optional.ofNullable(iface.getAnnotation(TargetClass.class)).map(TargetClass::value),
+                    () -> getTargetClass(iface))
+                    .orElse(null);
 
-        if (targetClass == null && iface.getAnnotation(TargetClass.Instance.class) != null) {
-            Validate.notNull(instance, "instance must not be null");
-            targetClass = instance.getClass();
+            if (targetClass == null && iface.getAnnotation(TargetClass.Instance.class) != null) {
+                Validate.notNull(instance, "instance must not be null");
+                targetClass = instance.getClass();
+            }
+
+            Validate.notNull(targetClass, "Interface must be annotated with @TargetClass, @TargetClass.Instance or extend Attachable");
         }
-
-        Validate.notNull(targetClass, "Interface must be annotated with @TargetClass, @TargetClass.Instance or extend Attachable");
 
         if (instance != null) {
             Validate.isInstanceOf(targetClass, instance, "Object must be instance of %s specified in @TargetClass", targetClass.getName());
         }
 
-        InvocationHandler mirrorInvocationHandler = new MirrorInvocationHandler(iface, targetClass, instance);
+        InvocationHandler mirrorInvocationHandler = new MirrorInvocationHandler(iface, targetClass, instance, isApi);
 
         return (T) Proxy.newProxyInstance(iface.getClassLoader(),
                 new Class[]{iface},
@@ -778,15 +787,17 @@ public final class AntiPatterns {
      */
     private static final class MirrorInvocationHandler implements InvocationHandler {
         private final Map<Method, MethodHandle> invocationMap;
-        private final Class<?> targetClass;
         private final Class<?> interfaceClass;
         private final Object instance;
+        private final boolean api;
 
-        private MirrorInvocationHandler(@Nonnull Class<?> mirrorInterface, @Nonnull Class<?> target, @Nullable Object targetInstance) {
+        private MirrorInvocationHandler(@Nonnull Class<?> mirrorInterface, @Nonnull Class<?> target, @Nullable Object targetInstance, boolean isApi) {
             Validate.notNull(mirrorInterface, "mirrorInterface must not be null");
-            Validate.notNull(target, "target must not be null");
+            if ( !isApi ) {
+                Validate.notNull(target, "target must not be null");
+            }
 
-            targetClass = target;
+            api = isApi;
             instance = targetInstance;
             interfaceClass = mirrorInterface;
 
@@ -812,13 +823,32 @@ public final class AntiPatterns {
                     MethodHandle handle;
                     MethodType signature;
 
-                    if (!isStatic && !isConstructor && targetInstance == null) {
+                    if (!api && !isStatic && !isConstructor && targetInstance == null) {
                         throw new IllegalArgumentException(String.format("Cannot mirror %s: Method is not @Static, but no instance is provided", printMethod(method)));
                     }
 
                     try {
                         // Remove first parameter from Interface method signature (it is used to pass `this`)
                         signature = lookupAll().unreflect(method).type().dropParameterTypes(0, 1);
+
+                        Class<?> methodTarget;
+                        if ( api ) {
+                            if (isConstructor || isStatic) {
+                                // get target from TargetClass annotation of method
+                                TargetClass targetClass = method.getAnnotation(TargetClass.class);
+                                if ( targetClass == null ) {
+                                    throw new IllegalArgumentException(String.format("Cannot mirror %s: Interface has @TargetClass.API, but no @TargetClass specified for static method", printMethod(method)));
+                                }
+                                methodTarget = targetClass.value();
+                            } else {
+                                if (signature.parameterCount() < 1 || signature.parameterType(0).isPrimitive()) {
+                                    throw new IllegalArgumentException(String.format("Cannot mirror %s: Interface has @TargetClass.API, but no first argument is specified or argument type is primitive", printMethod(method)));
+                                }
+                                methodTarget = signature.parameterType(0);
+                            }
+                        } else {
+                            methodTarget = target;
+                        }
 
                         // Apply @ArgumentTypes for fluency
                         Annotation[][] parameterAnnotations = method.getParameterAnnotations();
@@ -836,13 +866,13 @@ public final class AntiPatterns {
 
                         if (isDirectField) {
                             // Direct access to field
-                            handle = getDirectField(name, signature, isStatic, returnTypeAnnotation);
+                            handle = getDirectField(methodTarget, name, signature, isStatic, returnTypeAnnotation);
                         } else if (isConstructor) {
                             // Constructors
-                            handle = getConstructor(signature);
+                            handle = getConstructor(methodTarget, signature);
                         } else {
                             // Normal and super methods
-                            handle = getMethod(name, signature, isStatic, returnTypeAnnotation, superAnnotation);
+                            handle = getMethod(methodTarget, name, signature, isStatic, returnTypeAnnotation, superAnnotation);
                         }
 
                         // Check if Optional.ofNullable wrapper needed
@@ -853,7 +883,7 @@ public final class AntiPatterns {
                             MethodHandle filter = MethodHandles.explicitCastArguments(OPTIONAL_OFNULLABLE, filterType);
                             handle = MethodHandles.filterReturnValue(handle, filter);
                         }
-                    } catch (Exception e) {
+                    } catch (IllegalAccessException | NoSuchFieldException | NoSuchMethodException e) {
                         throw new IllegalArgumentException(String.format("Cannot mirror %s", printMethod(method)), e);
                     }
 
@@ -862,12 +892,12 @@ public final class AntiPatterns {
             }
         }
 
-        private MethodHandle getDirectField(@Nonnull String name, @Nonnull MethodType signature, boolean isStatic, @Nullable ReturnType returnTypeAnnotation) throws IllegalAccessException, NoSuchFieldException {
+        private MethodHandle getDirectField(@Nonnull Class<?> target, @Nonnull String name, @Nonnull MethodType signature, boolean isStatic, @Nullable ReturnType returnTypeAnnotation) throws IllegalAccessException, NoSuchFieldException {
             // Remove `set`/`get`/`is` from method name to get field name
             String fieldName = getFieldName(name);
 
-            boolean isGetter = signature.parameterCount() == 0;
-            boolean isSetter = signature.parameterCount() == 1;
+            boolean isGetter = signature.parameterCount() == (api && !isStatic ? 1 : 0);
+            boolean isSetter = signature.parameterCount() == (api && !isStatic ? 2 : 1);
 
             if (isGetter) {
                 if (signature.returnType() == void.class) {
@@ -881,27 +911,39 @@ public final class AntiPatterns {
                     }
                     targetReturnType = returnTypeAnnotation.value();
                 }
-                return isStatic
-                        ? lookupAll().findStaticGetter(targetClass, fieldName, targetReturnType)
-                        : lookupAll().findGetter(targetClass, fieldName, targetReturnType).bindTo(instance);
+                if (isStatic) {
+                    return lookupAll().findStaticGetter(target, fieldName, targetReturnType);
+                } else {
+                    if (api) {
+                        return lookupAll().findGetter(target, fieldName, targetReturnType);
+                    } else {
+                        return lookupAll().findGetter(target, fieldName, targetReturnType).bindTo(instance);
+                    }
+                }
             } else if (isSetter) {
                 if (signature.returnType() != void.class && signature.returnType() != interfaceClass) {
                     // Setters in Interface must return either void or Interface instance (for chaining)
                     throw new IllegalArgumentException("Invalid return value for setter method marked with @DirectField");
                 }
-                return isStatic
-                        ? lookupAll().findStaticSetter(targetClass, fieldName, signature.parameterType(0))
-                        : lookupAll().findSetter(targetClass, fieldName, signature.parameterType(0)).bindTo(instance);
+                if (isStatic) {
+                    return lookupAll().findStaticSetter(target, fieldName, signature.parameterType(0));
+                } else {
+                    if (api) {
+                        return lookupAll().findSetter(target, fieldName, signature.parameterType(1));
+                    } else {
+                        return lookupAll().findSetter(target, fieldName, signature.parameterType(0)).bindTo(instance);
+                    }
+                }
             }
 
             throw new IllegalArgumentException("Invalid argument count for a method marked with @DirectField");
         }
 
-        private MethodHandle getConstructor(@Nonnull MethodType signature) throws IllegalAccessException, NoSuchMethodException {
-            return lookupAll().findConstructor(targetClass, signature.changeReturnType(void.class));
+        private MethodHandle getConstructor(@Nonnull Class<?> target, @Nonnull MethodType signature) throws IllegalAccessException, NoSuchMethodException {
+            return lookupAll().findConstructor(target, signature.changeReturnType(void.class));
         }
 
-        private MethodHandle getMethod(@Nonnull String methodName, @Nonnull MethodType signature, boolean isStatic, @Nullable ReturnType returnTypeAnnotation, @Nullable Super superAnnotation) throws NoSuchMethodException, IllegalAccessException {
+        private MethodHandle getMethod(@Nonnull Class<?> target, @Nonnull String methodName, @Nonnull MethodType signature, boolean isStatic, @Nullable ReturnType returnTypeAnnotation, @Nullable Super superAnnotation) throws NoSuchMethodException, IllegalAccessException {
             Class<?> targetReturnType = signature.returnType();
             if (returnTypeAnnotation != null) {
                 // @OriginalReturnType is specified
@@ -912,11 +954,17 @@ public final class AntiPatterns {
             MethodType newSignature = signature.changeReturnType(targetReturnType);
 
             if (superAnnotation == null) {
-                return isStatic
-                        ? lookupAll().findStatic(targetClass, methodName, newSignature)
-                        : lookupAll().findVirtual(targetClass, methodName, newSignature).bindTo(instance);
+                if (isStatic) {
+                    return lookupAll().findStatic(target, methodName, newSignature);
+                } else {
+                    if (api) {
+                        return lookupAll().findVirtual(target, methodName, newSignature.dropParameterTypes(0, 1));
+                    } else {
+                        return lookupAll().findVirtual(target, methodName, newSignature).bindTo(instance);
+                    }
+                }
             } else {
-                return lookupAll().findSpecial(targetClass, methodName, newSignature, superAnnotation.value()).bindTo(instance);
+                return lookupAll().findSpecial(target, methodName, newSignature, superAnnotation.value()).bindTo(instance);
             }
         }
 

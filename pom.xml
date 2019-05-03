@@ -6,7 +6,7 @@
 
     <groupId>com.github.fluorumlabs</groupId>
     <artifactId>antipatterns</artifactId>
-    <version>1.0.0-alpha3</version>
+    <version>1.0.0-beta1</version>
 
     <name>antipatterns</name>
     <description>Collection of helpers to extend Java functionality</description>

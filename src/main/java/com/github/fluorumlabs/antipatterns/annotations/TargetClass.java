@@ -9,9 +9,12 @@ import java.lang.annotation.Target;
 
 /**
  * Specify target class for {@link AntiPatterns#attach(Class, Object)} and {@link AntiPatterns#attachStatic(Class)}
+ *
+ * If interface is annotated with {@link TargetClass.API}, first argument type of every non-static method will be
+ * a target class for this method. Static members should be annotated with {@link TargetClass} annotation.
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
+@Target({ElementType.TYPE, ElementType.METHOD})
 public @interface TargetClass {
 	/**
 	 * Target class for mirror
@@ -26,6 +29,15 @@ public @interface TargetClass {
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.TYPE)
 	@interface Instance {
+
+	}
+
+	/**
+	 * Specify separate target class for each method
+	 */
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.TYPE)
+	@interface API {
 
 	}
 }

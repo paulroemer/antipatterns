@@ -381,6 +381,64 @@ public class ClassesTest {
 
     //////////////////////////////////////////////////////////////////////////////////////////////
 
+    @TargetClass.API
+    private interface TestAPI {
+        @DirectField
+        String getField(TestSuperClass that);
+
+        @DirectField
+        void setField(TestSuperClass that, String value);
+
+        @DirectField
+        String value(TestSuperClass that);
+
+        String getValue(TestSuperClass that);
+
+        @TargetClass(TestSuperClass.class)
+        @Static
+        Integer testStatic();
+
+        @TargetClass(TestSuperClass.class)
+        @Constructor
+        TestSuperClass newInstance();
+
+        @TargetClass(Boolean.class)
+        @Static
+        @DirectField
+        Boolean FALSE();
+
+        static TestAPI attach() {
+            return AntiPatterns.attachStatic(TestAPI.class);
+        }
+    }
+
+    @Test
+    public void testAPI() {
+        TestAPI api = TestAPI.attach();
+        TestSuperClass that = api.newInstance();
+
+        Assert.assertThat("New instance is created",
+                that, is(instanceOf(TestSuperClass.class)));
+
+        Assert.assertThat("Field is read, bypassing getter",
+                api.value(that), is("no-args"));
+
+        Assert.assertThat("Field is read using getter",
+                api.getValue(that), is("no-args-get-value"));
+
+        api.setField(that,"field-patched");
+        Assert.assertThat("Field value is set",
+                api.getField(that), is("field-patched"));
+
+        Assert.assertThat("Static method with no arguments is called",
+                api.testStatic(), is(5));
+
+        Assert.assertThat("Static field getter is called",
+                api.FALSE(), is(Boolean.FALSE));
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////
+
     @Test
     public void testUpgrade() {
         TestSuperClass testSuperClass = new TestSuperClass();

@@ -52,6 +52,18 @@ private interface FluentList<T> extends AntiPatterns.Attachable<List<T>> {
 FluentList<String> fluentList = FluentList.attach(new ArrayList<String>());
 fluentList.add("1").add("2").add("3");
 List<String> list = fluentList.instance();
+
+...
+
+// Create singleton API bridges
+@TargetClass.API
+public interface PrivateMatcherAPI {
+    int getMatchedGroupIndex(Matcher that, String name);
+    
+    static PrivateMatcherAPI create() {
+        return AntiPatterns.attachStatic(PrivateMatcherAPI.class);
+    }
+}
 ```
 
 ### Upgrade object instance to a subclass
@@ -205,6 +217,6 @@ Stream<Entity> entities = baseEntities.stream()
 <dependency>
    <groupId>com.github.fluorumlabs</groupId>
    <artifactId>antipatterns</artifactId>
-   <version>1.0.0-alpha3</version>
+   <version>1.0.0-beta1</version>
 </dependency>
 ```
