@@ -469,7 +469,7 @@ public class ClassesTest {
     @Test
     public void testUpgradeIndirectWithRemap() {
         TestSuperClass testSuperClass = new TestSuperClass();
-        TestSuperClass.TestClass2 upgradedInstance = AntiPatterns.upgradeIndirect(testSuperClass, TestSuperClass.TestClass2.class, AntiPatterns.hashMap(value -> "testClassMarker"));
+        TestSuperClass.TestClass2 upgradedInstance = AntiPatterns.upgradeIndirect(testSuperClass, TestSuperClass.TestClass2.class, Map.of("value", "testClassMarker"));
 
         Assert.assertThat("Original field is uninitialized",
                 upgradedInstance.getValue(), is("null-get-value"));

@@ -2,14 +2,11 @@ package com.github.fluorumlabs.antipatterns;
 
 import com.github.fluorumlabs.antipatterns.annotations.Constructor;
 import com.github.fluorumlabs.antipatterns.annotations.*;
-import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -40,7 +37,7 @@ public final class AntiPatterns {
      * @return Optional of T if successfull, or Optional.empty() otherwise
      */
     @SafeVarargs
-    public static <T> Optional<T> trySequentially(@Nonnull Supplier<Optional<T>>... suppliers) {
+    public static <T> Optional<T> trySequentially(@NonNull Supplier<Optional<T>>... suppliers) {
         Validate.notNull(suppliers, "suppliers must not be null");
         Validate.noNullElements(suppliers, "suppliers must not contain null elements");
 
@@ -49,20 +46,6 @@ public final class AntiPatterns {
                 .filter(Optional::isPresent)
                 .findFirst()
                 .orElse(Optional.empty());
-    }
-
-    /**
-     * Convert optional value to stream of zero or one elements
-     *
-     * @param value value (can be Optional.empty())
-     * @param <T>   value type
-     * @return stream containing this value
-     */
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    public static <T> Stream<T> asStream(@Nonnull Optional<T> value) {
-        Validate.notNull(value, "value must not be null");
-
-        return value.map(Stream::of).orElseGet(Stream::empty);
     }
 
     /**
@@ -146,32 +129,6 @@ public final class AntiPatterns {
     }
 
     /**
-     * Construct new HashMap.
-     * <p>
-     * Usage example:
-     * {@code Map<String,String> map = hashMap(name -> "vaadin-board", version -> "1.3.0");}
-     * <p>
-     * CAUTION: requires `-parameters` option for `javac`
-     *
-     * @param <T>           map value type
-     * @param keyValuePairs key-value pairs
-     * @return Map
-     */
-    @SafeVarargs
-    public static <T> Map<String, T> hashMap(AntiPatterns.NamedValue<T>... keyValuePairs) {
-        Validate.noNullElements(keyValuePairs, "keyValuePairs must not contain null elements");
-        Map<String, T> map = new HashMap<>(keyValuePairs.length);
-
-        for (AntiPatterns.NamedValue<T> keyValuePair : keyValuePairs) {
-            String name = keyValuePair.name();
-            T value = keyValuePair.value(name);
-            map.put(name, value);
-        }
-
-        return map;
-    }
-
-    /**
      * Call supplier, catch RuntimeException and return empty optional
      * <p>
      * Example usage:
@@ -181,7 +138,7 @@ public final class AntiPatterns {
      * @param <T>      result type
      * @return Optional of {@code T}
      */
-    public static <T> Optional<T> guarded(@Nonnull Supplier<T> supplier) {
+    public static <T> Optional<T> guarded(@NonNull Supplier<T> supplier) {
         Validate.notNull(supplier, "supplier must not be null");
 
         try {
@@ -201,7 +158,7 @@ public final class AntiPatterns {
      * @param <T>      result type
      * @return Optionsl of {@code T}
      */
-    public static <T> Optional<T> guardedOptional(@Nonnull Supplier<Optional<T>> supplier) {
+    public static <T> Optional<T> guardedOptional(@NonNull Supplier<Optional<T>> supplier) {
         Validate.notNull(supplier, "supplier must not be null");
 
         try {
@@ -219,7 +176,7 @@ public final class AntiPatterns {
      *
      * @param runnable runnable to execute
      */
-    public static void guarded(@Nonnull Runnable runnable) {
+    public static void guarded(@NonNull Runnable runnable) {
         Validate.notNull(runnable, "runnable must not be null");
 
         try {
@@ -240,7 +197,7 @@ public final class AntiPatterns {
      * @param <U>    function result type
      * @return wrapped function
      */
-    public static <T, U> Function<T, U> guarded(@Nonnull Function<T, U> mapper) {
+    public static <T, U> Function<T, U> guarded(@NonNull Function<T, U> mapper) {
         Validate.notNull(mapper, "mapper must not be null");
 
         return x -> {
@@ -266,8 +223,8 @@ public final class AntiPatterns {
      * @param replacer function mapping array of groups to replacement string
      * @return replacement result
      */
-    @Nonnull
-    public static String replaceFunctional(@Nonnull Pattern pattern, @Nonnull String input, @Nonnull AntiPatterns.Replacer replacer) {
+    @NonNull
+    public static String replaceFunctional(@NonNull Pattern pattern, @NonNull String input, @NonNull Replacer replacer) {
         Validate.notNull(input, "input must not be null");
         Validate.notNull(pattern, "pattern must not be null");
         Validate.notNull(replacer, "replacer must not be null");
@@ -294,8 +251,8 @@ public final class AntiPatterns {
      * @param input   input string
      * @return iterator
      */
-    @Nonnull
-    public static Iterator<String[]> matchIterator(@Nonnull Pattern pattern, @Nonnull String input) {
+    @NonNull
+    public static Iterator<String[]> matchIterator(@NonNull Pattern pattern, @NonNull String input) {
         Validate.notNull(pattern, "pattern must not be null");
         Validate.notNull(input, "input must not be null");
 
@@ -309,28 +266,14 @@ public final class AntiPatterns {
      * @param input   input string
      * @return stream of array of strings, containing matched groups
      */
-    @Nonnull
-    public static Stream<String[]> matchAsStream(@Nonnull Pattern pattern, @Nonnull String input) {
+    @NonNull
+    public static Stream<String[]> matchAsStream(@NonNull Pattern pattern, @NonNull String input) {
         Validate.notNull(pattern, "pattern must not be null");
         Validate.notNull(input, "input must not be null");
 
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(
                 matchIterator(pattern, input), Spliterator.ORDERED | Spliterator.NONNULL), false);
 
-    }
-
-    /**
-     * Functional interface for computing replacement string for {@link AntiPatterns#replaceFunctional(Pattern, String, AntiPatterns.Replacer)}
-     */
-    @FunctionalInterface
-    public interface Replacer {
-        /**
-         * Compute replacement
-         *
-         * @param groups Matcher groups with {@code group(0)} as a first element
-         * @return Optional replacement string
-         */
-        Optional<String> getReplacement(String... groups);
     }
 
     /**
@@ -362,72 +305,6 @@ public final class AntiPatterns {
         }
     }
 
-
-    /**
-     * Perform string interpolation (with benefits).
-     * <p>
-     * It's possible to specify formatting rules after space (all String.format specifiers are allowed); default is
-     * to use %s. Tokens can be a deep reference for inner objects; it is possible to access value.property via
-     * ${value.property} syntax.
-     * <p>
-     * If token can be escaped by putting double '$' signs: "$${ignoredToken}" will be shown as "${ignoredToken}"
-     * without any errors.
-     * <p>
-     * Usage:
-     * {@code String result = interpolate("File '${fileName}' cannot be found", fileName -> file.getPath()); }
-     * <p>
-     * {@code String result = interpolate("Found ${entries %10d} entries", fileName -> entries.length; }
-     *
-     * @param format        template
-     * @param keyValuePairs parameters
-     * @return formatted string
-     */
-    @SafeVarargs
-    public static String interpolate(@Nonnull String format, AntiPatterns.NamedValue<Object>... keyValuePairs) {
-        Validate.notNull(format, "format must not be null");
-        Validate.noNullElements(keyValuePairs, "keyValuePairs must not contain null elements");
-
-        // Parameter indices
-        Map<String, Object> parameters = hashMap(keyValuePairs);
-        Map<String, Integer> paramIndices = new HashMap<>(); // parameter indices
-        List<Object> values = new ArrayList<>();
-
-        // Process format string
-        String metaFormat = replaceFunctional(INTERPOLATION_PATTERN, StringUtils.replace(format, "%", "%%"), matches -> {
-            if (matches[1].length() > 1) {
-                // Meaning we have '$$' in the beginning -- just dump the token as is
-                return Optional.of("${" + matches[2] + StringUtils.defaultString(matches[3], "") + "}");
-            } else {
-                // We have a token, with or without extra formatting
-                String key = matches[2];
-                String fmt = StringUtils.defaultString(matches[4], "s");
-
-                if (paramIndices.containsKey(key)) {
-                    // We already seen that key
-                    return Optional.of("%" + paramIndices.get(key) + "$" + fmt);
-                } else {
-                    // Not seen yet
-                    Object value = null;
-                    try {
-                        value = PropertyUtils.getNestedProperty(parameters, key);
-                    } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                        throw new IllegalArgumentException(String.format("Cannot get value for token %s", key), e);
-                    }
-
-                    int index = values.size() + 1;
-                    paramIndices.put(key, index);
-                    values.add(value);
-
-                    return Optional.of("%" + index + "$" + fmt);
-                }
-
-            }
-        });
-
-        // kthxbye
-        return String.format(metaFormat, values.toArray());
-    }
-
     /**
      * Perform safe type casting
      * <p>
@@ -440,7 +317,7 @@ public final class AntiPatterns {
      * @return Optional of casted object if it is instance of clazz, empty otherwise
      */
     @SuppressWarnings("unchecked")
-    public static <T> Optional<T> safeCast(@Nonnull Object object, @Nonnull Class<T> clazz) {
+    public static <T> Optional<T> safeCast(@NonNull Object object, @NonNull Class<T> clazz) {
         Validate.notNull(object, "object must not be null");
         Validate.notNull(clazz, "clazz must not be null");
         if (clazz.isAssignableFrom(object.getClass())) {
@@ -464,7 +341,7 @@ public final class AntiPatterns {
      * @param <T>   expected type
      * @return function that safely maps from O to T
      */
-    public static <O, T> Function<O, T> safeCast(@Nonnull Class<T> clazz) {
+    public static <O, T> Function<O, T> safeCast(@NonNull Class<T> clazz) {
         Validate.notNull(clazz, "clazz must not be null");
         return new SafeCaster<>(clazz);
     }
@@ -532,7 +409,7 @@ public final class AntiPatterns {
      * @param <T>             Proxy type
      * @return Proxy instance
      */
-    public static <T> T attach(@Nonnull Class<?> mirrorInterface, @Nonnull Object instance) {
+    public static <T> T attach(@NonNull Class<?> mirrorInterface, @NonNull Object instance) {
         Validate.notNull(mirrorInterface, "mirrorInterface must not be null");
         Validate.notNull(instance, "instance must not be null");
 
@@ -546,7 +423,7 @@ public final class AntiPatterns {
      * @param <T>             Proxy type
      * @return Proxy instance
      */
-    public static <T> T attachStatic(@Nonnull Class<T> mirrorInterface) {
+    public static <T> T attachStatic(@NonNull Class<T> mirrorInterface) {
         Validate.notNull(mirrorInterface, "mirrorInterface must not be null");
 
         return attachMirror(mirrorInterface, null);
@@ -560,7 +437,7 @@ public final class AntiPatterns {
      * @return new instance of object
      */
     @SuppressWarnings("unchecked")
-    public static <T> T shallowClone(@Nonnull T instance) {
+    public static <T> T shallowClone(@NonNull T instance) {
         Validate.notNull(instance, "instance must not be null");
         return (T) upgrade(instance, instance.getClass());
     }
@@ -581,7 +458,7 @@ public final class AntiPatterns {
      * @param <T>      resulting object type
      * @return new instance
      */
-    public static <T> T upgrade(@Nonnull Object instance, @Nonnull Class<T> target) {
+    public static <T> T upgrade(@NonNull Object instance, @NonNull Class<T> target) {
         Validate.notNull(instance, "instance must not be null");
         Validate.notNull(target, "target must not be null");
         Validate.isAssignableFrom(instance.getClass(), target, "target must extend instance.getClass()");
@@ -602,7 +479,7 @@ public final class AntiPatterns {
      * @param <T>      resulting object type
      * @return new instance
      */
-    public static <T> T upgradeIndirect(@Nonnull Object instance, @Nonnull Class<T> target) {
+    public static <T> T upgradeIndirect(@NonNull Object instance, @NonNull Class<T> target) {
         Validate.notNull(instance, "instance must not be null");
         Validate.notNull(target, "target must not be null");
         Validate.isTrue(target.getDeclaredConstructors().length > 0, "target must be a concrete class");
@@ -624,7 +501,7 @@ public final class AntiPatterns {
      * @return new instance
      */
     @SuppressWarnings("unchecked")
-    public static <T> T upgradeIndirect(@Nonnull Object instance, @Nonnull Class<T> target, @Nonnull Map<String, String> fieldMapping) {
+    public static <T> T upgradeIndirect(@NonNull Object instance, @NonNull Class<T> target, @NonNull Map<String, String> fieldMapping) {
         Validate.notNull(instance, "instance must not be null");
         Validate.notNull(target, "target must not be null");
         Validate.isTrue(target.getDeclaredConstructors().length > 0, "target must be a concrete class");
@@ -672,36 +549,6 @@ public final class AntiPatterns {
     }
 
     /**
-     * Functional interface capabale of getting argument name
-     *
-     * @param <T> value type
-     */
-    public interface NamedValue<T> extends Serializable, MethodFinder, Function<String, T> {
-        /**
-         * Name part of NamedValue. Determined in run time from lambda argument name
-         *
-         * @return name
-         */
-        default String name() {
-            String name = lastParameter().getName();
-            if (name.startsWith("arg")) {
-                throw new UnsupportedOperationException("You need to compile with javac -parameters for parameter reflection to work; You also need java 8u60 or newer to use it with lambdas");
-            }
-            return name;
-        }
-
-        /**
-         * Value part of NamedValue.
-         *
-         * @param name (dummy) argument, whose name (in lambda) will become a {@link NamedValue#name()}
-         * @return value
-         */
-        default T value(String name) {
-            return apply(name);
-        }
-    }
-
-    /**
      * Interface providing target instance for use with {@link AntiPatterns#attach(Class, Object)}.
      * <p>
      * When this interface is used as a super, {@link TargetClass} annotation is not needed.
@@ -726,7 +573,7 @@ public final class AntiPatterns {
      * @return Mirror instance
      */
     @SuppressWarnings("unchecked")
-    private static <T> T attachMirror(@Nonnull Class<?> iface, @Nullable Object instance) {
+    private static <T> T attachMirror(@NonNull Class<?> iface, @Nullable Object instance) {
         boolean isApi = false;
         Class<?> targetClass;
         if (iface.getAnnotation(TargetClass.API.class) != null) {
@@ -764,7 +611,7 @@ public final class AntiPatterns {
      * @param iface interface extending Attachable
      * @return Type parameter of Attachable
      */
-    private static Optional<Class<?>> getTargetClass(@Nonnull Class<?> iface) {
+    private static Optional<Class<?>> getTargetClass(@NonNull Class<?> iface) {
         return Stream.of(iface.getGenericInterfaces())
                 .filter(type -> type instanceof ParameterizedType)
                 .filter(type -> ((ParameterizedType) type).getRawType() == Attachable.class)
@@ -791,7 +638,7 @@ public final class AntiPatterns {
         private final Object instance;
         private final boolean api;
 
-        private MirrorInvocationHandler(@Nonnull Class<?> mirrorInterface, @Nonnull Class<?> target, @Nullable Object targetInstance, boolean isApi) {
+        private MirrorInvocationHandler(@NonNull Class<?> mirrorInterface, @NonNull Class<?> target, @Nullable Object targetInstance, boolean isApi) {
             Validate.notNull(mirrorInterface, "mirrorInterface must not be null");
             if ( !isApi ) {
                 Validate.notNull(target, "target must not be null");
@@ -892,7 +739,7 @@ public final class AntiPatterns {
             }
         }
 
-        private MethodHandle getDirectField(@Nonnull Class<?> target, @Nonnull String name, @Nonnull MethodType signature, boolean isStatic, @Nullable ReturnType returnTypeAnnotation) throws IllegalAccessException, NoSuchFieldException {
+        private MethodHandle getDirectField(@NonNull Class<?> target, @NonNull String name, @NonNull MethodType signature, boolean isStatic, @Nullable ReturnType returnTypeAnnotation) throws IllegalAccessException, NoSuchFieldException {
             // Remove `set`/`get`/`is` from method name to get field name
             String fieldName = getFieldName(name);
 
@@ -939,11 +786,11 @@ public final class AntiPatterns {
             throw new IllegalArgumentException("Invalid argument count for a method marked with @DirectField");
         }
 
-        private MethodHandle getConstructor(@Nonnull Class<?> target, @Nonnull MethodType signature) throws IllegalAccessException, NoSuchMethodException {
+        private MethodHandle getConstructor(@NonNull Class<?> target, @NonNull MethodType signature) throws IllegalAccessException, NoSuchMethodException {
             return lookupAll().findConstructor(target, signature.changeReturnType(void.class));
         }
 
-        private MethodHandle getMethod(@Nonnull Class<?> target, @Nonnull String methodName, @Nonnull MethodType signature, boolean isStatic, @Nullable ReturnType returnTypeAnnotation, @Nullable Super superAnnotation) throws NoSuchMethodException, IllegalAccessException {
+        private MethodHandle getMethod(@NonNull Class<?> target, @NonNull String methodName, @NonNull MethodType signature, boolean isStatic, @Nullable ReturnType returnTypeAnnotation, @Nullable Super superAnnotation) throws NoSuchMethodException, IllegalAccessException {
             Class<?> targetReturnType = signature.returnType();
             if (returnTypeAnnotation != null) {
                 // @OriginalReturnType is specified
@@ -969,7 +816,7 @@ public final class AntiPatterns {
         }
 
         // Compute field name from setter/getter method name
-        private static String getFieldName(@Nonnull String methodName) {
+        private static String getFieldName(@NonNull String methodName) {
             if (methodName.startsWith("get")) {
                 return StringUtils.uncapitalize(StringUtils.removeStart(methodName, "get"));
             } else if (methodName.startsWith("set")) {
@@ -982,7 +829,7 @@ public final class AntiPatterns {
         }
 
         // Pretty print Method
-        private static String printMethod(@Nonnull Method method) {
+        private static String printMethod(@NonNull Method method) {
             return method.getReturnType().getSimpleName() + ' ' + method.getName() +
                     Stream.of(method.getParameters())
                             .map(parameter -> parameter.getType().getSimpleName())
@@ -1028,7 +875,7 @@ public final class AntiPatterns {
      * @param clazz class
      * @return Map of field names to field types
      */
-    private static Map<String, Class<?>> getFields(@Nonnull Class<?> clazz) {
+    private static Map<String, Class<?>> getFields(@NonNull Class<?> clazz) {
         Class<?> visitingClass = clazz;
         Map<String, Class<?>> result = new HashMap<>();
         while (visitingClass != Object.class) {
